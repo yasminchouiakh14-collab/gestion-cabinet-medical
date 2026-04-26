@@ -1,0 +1,13 @@
+/*
+!/.gitignore
+!/public/
+!/resources/
+
+# Ignore Laravel build artifacts and generated files
+/public/build
+/public/hot
+/public/storage
+/storage
+/vendor
+/node_modules
+.env
