@@ -2,6 +2,8 @@
 !/.gitignore
 !/public/
 !/resources/
+!/app/
+!/routes/
 
 # Ignore Laravel build artifacts and generated files
 /public/build
