@@ -4,11 +4,10 @@ use App\Http\Controllers\Api\AppointmentApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// API public endpoints (no auth required for demo)
 Route::prefix('appointments')->group(function () {
-    Route::get('/',        [AppointmentApiController::class, 'index'])->name('api.appointments.index');
-    Route::post('/',       [AppointmentApiController::class, 'store'])->name('api.appointments.store');
-    Route::get('/search',  [AppointmentApiController::class, 'search'])->name('api.appointments.search');
+    Route::get('/search',        [AppointmentApiController::class, 'search'])->name('api.appointments.search');
+    Route::get('/',              [AppointmentApiController::class, 'index'])->name('api.appointments.index');
+    Route::post('/',             [AppointmentApiController::class, 'store'])->name('api.appointments.store');
     Route::get('/{appointment}', [AppointmentApiController::class, 'show'])->name('api.appointments.show');
 });
 

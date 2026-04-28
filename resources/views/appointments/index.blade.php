@@ -134,82 +134,91 @@
 
 @push('scripts')
 <script>
-    // Delete Modal Logic
-    document.getElementById('deleteModal').addEventListener('show.bs.modal', function (event) {
-        let button = event.relatedTarget;
-        let id = button.getAttribute('data-id');
+    document.getElementById('deleteModal').addEventListener('show.bs.modal', function(event) {
+        let id = event.relatedTarget.getAttribute('data-id');
         document.getElementById('deleteForm').action = `/appointments/${id}`;
     });
 
-    // Axios Real-time Search
     let searchTimeout;
-    const searchInput = document.getElementById('searchInput');
-    const appointmentsList = document.getElementById('appointmentsList');
+    const searchInput         = document.getElementById('searchInput');
+    const appointmentsList    = document.getElementById('appointmentsList');
     const paginationContainer = document.getElementById('paginationContainer');
+    const isFr                = "{{ app()->getLocale() }}" === "fr";
+
+    const statusLabels = {
+        pending:   isFr ? 'En attente' : 'Pending',
+        confirmed: isFr ? 'Confirmé'   : 'Confirmed',
+        cancelled: isFr ? 'Annulé'     : 'Cancelled',
+        completed: isFr ? 'Terminé'    : 'Completed'
+    };
 
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
         let q = this.value;
-        
+
         searchTimeout = setTimeout(() => {
-            if(q.length >= 2 || q.length === 0) {
-                // Determine translation strings based on current locale
-                const isFr = "{{ app()->getLocale() }}" === "fr";
-                
+            if (q.length >= 2 || q.length === 0) {
+
                 axios.get('/api/appointments/search', { params: { q: q } })
                     .then(response => {
-                        // Hide standard pagination when searching
-                        if(q.length > 0) paginationContainer.style.display = 'none';
-                        else paginationContainer.style.display = 'block';
+                        paginationContainer.style.display = q.length > 0 ? 'none' : 'block';
 
                         let html = '';
-                        if(response.data.length === 0) {
-                            html = `<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-search d-block fs-3 mb-2"></i>{{ __('messages.no_appointments') }}</td></tr>`;
+
+                        if (response.data.length === 0) {
+                            html = `<tr><td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-search d-block fs-3 mb-2"></i>
+                                Aucun rendez-vous trouvé
+                            </td></tr>`;
                         } else {
                             response.data.forEach(apt => {
-                                // Format date nicely
-                                let d = new Date(apt.appointment_date);
+                                let d       = new Date(apt.appointment_date);
                                 let dateStr = d.toLocaleDateString(isFr ? 'fr-FR' : 'en-US', {day:'2-digit', month:'short', year:'numeric'});
                                 let timeStr = d.toLocaleTimeString(isFr ? 'fr-FR' : 'en-US', {hour:'2-digit', minute:'2-digit'});
-                                
-                                // Status mapping
-                                let statusLabels = {
-                                    pending: isFr ? 'En attente' : 'Pending',
-                                    confirmed: isFr ? 'Confirmé' : 'Confirmed',
-                                    cancelled: isFr ? 'Annulé' : 'Cancelled',
-                                    completed: isFr ? 'Terminé' : 'Completed'
-                                };
-                                
+
                                 html += `
                                 <tr>
                                     <td class="text-muted fw-semibold">#${apt.id}</td>
-                                    <td><div class="fw-semibold text-dark">${dateStr}</div><small class="text-muted">${timeStr}</small></td>
-                                    <td><div class="d-flex align-items-center gap-2">
-                                        <div class="avatar bg-light text-primary" style="width:24px;height:24px;font-size:0.65rem">${apt.patient.name.charAt(0)}</div>
-                                        ${apt.patient.name}
-                                    </div></td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">${dateStr}</div>
+                                        <small class="text-muted">${timeStr}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar bg-light text-primary" style="width:24px;height:24px;font-size:0.65rem">
+                                                ${apt.patient.name.charAt(0)}
+                                            </div>
+                                            ${apt.patient.name}
+                                        </div>
+                                    </td>
                                     <td><span class="text-muted">Dr.</span> ${apt.doctor.name}</td>
-                                    <td>${apt.service.icon} ${apt.service.name}</td>
-                                    <td><span class="badge badge-status status-${apt.status}">${statusLabels[apt.status]}</span></td>
+                                    <td>${apt.service.icon ?? ''} ${apt.service.name}</td>
+                                    <td><span class="badge badge-status status-${apt.status}">${statusLabels[apt.status] ?? apt.status}</span></td>
                                     <td class="text-end">
                                         ${apt.status === 'pending' ? `
                                         <form action="/appointments/${apt.id}/confirm" method="POST" class="d-inline">
                                             <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                             <input type="hidden" name="_method" value="PATCH">
-                                            <button type="submit" class="btn btn-sm btn-light text-success mx-1" title="Confirmer le RDV"><i class="bi bi-check-circle-fill"></i></button>
+                                            <button type="submit" class="btn btn-sm btn-light text-success mx-1">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </button>
                                         </form>` : ''}
                                         <a href="/appointments/${apt.id}" class="btn btn-sm btn-light text-primary"><i class="bi bi-eye"></i></a>
                                         <a href="/appointments/${apt.id}/edit" class="btn btn-sm btn-light text-info mx-1"><i class="bi bi-pencil"></i></a>
-                                        <button class="btn btn-sm btn-light text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="${apt.id}"><i class="bi bi-trash"></i></button>
+                                        <button class="btn btn-sm btn-light text-danger"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="${apt.id}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>`;
                             });
-                        }
-                        appointmentsList.innerHTML = html;
+                        } {{-- ✅ fermeture du else --}}
+
+                        appointmentsList.innerHTML = html; {{-- ✅ dans le .then() --}}
                     })
                     .catch(error => console.error('Search error:', error));
             }
-        }, 300); // 300ms debounce
+        }, 300);
     });
 </script>
 <style>
